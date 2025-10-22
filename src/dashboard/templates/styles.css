@@ -1,0 +1,215 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f5f5f5;
+}
+
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card h3 {
+    font-size: 2.5rem;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.card.effector h3 {
+    color: #e74c3c;
+}
+
+.card.non-effector h3 {
+    color: #3498db;
+}
+
+.card.localisation h3 {
+    color: #9b59b6;
+}
+
+.card p {
+    color: #666;
+    font-size: 1rem;
+}
+
+.section {
+    background: white;
+    margin: 2rem 0;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.section h2 {
+    color: #667eea;
+    margin-bottom: 1rem;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 0.5rem;
+}
+
+.description {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.8;
+}
+
+.attention-gallery {
+    display: grid;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.attention-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fafafa;
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    margin-top: 3rem;
+}
+
+.plotly-graph-div {
+    margin: 1rem 0;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.protein-search {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #667eea;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    background: white;
+    cursor: pointer;
+}
+
+.protein-search:focus {
+    outline: none;
+    border-color: #764ba2;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.protein-search option {
+    padding: 0.5rem;
+}
+
+select.protein-search {
+    cursor: pointer;
+}
+
+input.protein-search {
+    cursor: text;
+}
+
+.search-button {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.search-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.reset-button {
+    padding: 0.75rem 1.5rem;
+    background: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.reset-button:hover {
+    background: #7f8c8d;
+}
+
+.search-result {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    min-width: 150px;
+    text-align: center;
+}
+
+.search-result.success {
+    color: #27ae60;
+    background: #d5f4e6;
+}
+
+.search-result.error {
+    color: #e74c3c;
+    background: #fadbd8;
+}

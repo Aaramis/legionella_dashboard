@@ -1,0 +1,51 @@
+# Legionella Protein Analysis Configuration
+# ==========================================
+
+# Model configuration
+model:
+  path: "model/"                    # Path to trained model directory
+  batch_size: 16                    # Batch size for inference (will be multiplied by number of GPUs if using multi-GPU)
+  max_length: 512                   # Maximum sequence length
+  device: "auto"                    # Device: 'auto', 'cuda', or 'cpu'
+  use_multi_gpu: true               # Use all available GPUs with DataParallel (auto-enabled if device='auto' and multiple GPUs found)
+
+# Data configuration
+data:
+  input_csv: "data/all_legionella_proteins_lpg_localisation.csv"  # Input CSV file with protein sequences (full proteome)
+  master_csv: "data/master.csv"     # Training data with true labels (is_effector, is_housekeeping)
+  processed_dir: "data/processed"   # Directory for processed data
+
+# Analysis configuration
+analysis:
+  extract_embeddings: true          # Extract embeddings from model
+  extract_attentions: true          # Extract attention weights
+  run_tsne: true                    # Run t-SNE dimensionality reduction
+  tsne_perplexity: 30              # t-SNE perplexity parameter
+  random_seed: 45                   # Random seed for reproducibility
+  compute_attributions: true        # Compute integrated gradients attributions
+  attribution_max_proteins: 4      # Maximum number of proteins for attribution analysis
+
+# Visualization configuration
+visualization:
+  # List of protein IDs to highlight in visualizations
+  highlight_proteins: []
+  # Examples:
+  # highlight_proteins:
+  #   - lpg1484
+  #   - lpg0502
+  #   - lpg2206
+
+  color_by: "localisation"          # Color by: 'localisation', 'category', or 'prediction'
+  opacity_proteom: 0.3              # Opacity for proteom points
+  opacity_known: 0.9                # Opacity for known proteins
+
+# Output configuration
+output:
+  report_name: "legionella_analysis_report.html"  # Output report filename
+  output_dir: "outputs"                            # Output directory
+  save_intermediate: true                          # Save intermediate results
+
+# Logging configuration
+logging:
+  level: "INFO"                     # Log level: DEBUG, INFO, WARNING, ERROR
+  log_dir: "data/processed/logs"    # Log directory
