@@ -95,6 +95,7 @@ class TSNEVisualizer:
     ) -> go.Figure:
         """
         Create interactive 2D t-SNE plot with Plotly
+        Uses different symbols for Effector/Non-effector predictions
 
         Args:
             tsne_coords: t-SNE coordinates (N, 2)
@@ -120,16 +121,20 @@ class TSNEVisualizer:
         df = df.merge(metadata, on='label', how='left')
 
         # Determine category for visualization
-        if 'is_effector' in df.columns:
+        if 'prediction' in df.columns:
+            df['category'] = df['prediction']
+        elif 'is_effector' in df.columns:
             df['category'] = df['is_effector'].map({
                 True: 'Effector',
-                False: 'Non-effector'
+                False: 'Non_effector'
             })
             df['category'] = df['category'].fillna('Unknown')
-        elif 'prediction' in df.columns:
-            df['category'] = df['prediction']
         else:
             df['category'] = 'Unknown'
+
+        # Ensure localisation column exists
+        if 'localisation' not in df.columns:
+            df['localisation'] = 'Unknown'
 
         # Add highlighted status
         if highlight_proteins:
@@ -142,21 +147,61 @@ class TSNEVisualizer:
             lambda row: self._create_hover_text(row), axis=1
         )
 
-        # Color palette
-        color_column = color_by if color_by in df.columns else 'category'
+        # Color palette for localisations
+        loc_colors = {
+            'Cytoplasmic': '#E74C3C',
+            'Periplasmic': '#3498DB',
+            'CytoplasmicMembrane': '#F39C12',
+            'Extracellular': '#9B59B6',
+            'OuterMembrane': '#1ABC9C',
+            'Unknown': '#95A5A6'
+        }
+
+        # Symbol mapping for predictions
+        category_symbols = {
+            'Effector': 'star',
+            'Non_effector': 'circle',
+            'Unknown': 'diamond'
+        }
 
         # Create figure
-        fig = px.scatter(
-            df[~df['is_highlighted']],  # Non-highlighted points first
-            x='x',
-            y='y',
-            color=color_column,
-            hover_data={'hover_text': True, 'x': False, 'y': False, color_column: False},
-            title=title,
-            labels={'x': 't-SNE 1', 'y': 't-SNE 2'},
-            opacity=0.6,
-            template='plotly_white'
-        )
+        fig = go.Figure()
+
+        # Add traces for each combination of category and localisation
+        # Draw Unknown first (bottom layer), then Non_effector, then Effector (top)
+        draw_order = ['Unknown', 'Non_effector', 'Effector']
+
+        for category in draw_order:
+            for localisation in df['localisation'].unique():
+                # Filter data
+                mask = (df['category'] == category) & (df['localisation'] == localisation) & (~df['is_highlighted'])
+                df_subset = df[mask]
+
+                if len(df_subset) == 0:
+                    continue
+
+                # Determine opacity and size
+                opacity = 0.3 if category == 'Unknown' else 0.7
+                size = 8 if category == 'Effector' else 6
+
+                fig.add_trace(go.Scatter(
+                    x=df_subset['x'],
+                    y=df_subset['y'],
+                    mode='markers',
+                    marker=dict(
+                        size=size,
+                        color=loc_colors.get(localisation, '#95A5A6'),
+                        symbol=category_symbols.get(category, 'diamond'),
+                        opacity=opacity,
+                        line=dict(width=0.5, color='rgba(0,0,0,0.3)')
+                    ),
+                    customdata=df_subset[['label']].values,
+                    text=df_subset['hover_text'],
+                    hovertemplate='%{text}<extra></extra>',
+                    name=f'{localisation} - {category}',
+                    legendgroup=f'{category}',
+                    showlegend=True
+                ))
 
         # Add highlighted proteins on top
         if highlight_proteins and df['is_highlighted'].any():
@@ -167,9 +212,9 @@ class TSNEVisualizer:
                 y=df_highlighted['y'],
                 mode='markers',
                 marker=dict(
-                    size=12,
-                    color='gold',
-                    symbol='star',
+                    size=15,
+                    color='#FFD700',
+                    symbol='x',
                     line=dict(width=2, color='black')
                 ),
                 text=df_highlighted['hover_text'],
@@ -179,15 +224,22 @@ class TSNEVisualizer:
             ))
 
         # Update layout
-        fig.update_traces(
-            hovertemplate='%{customdata[0]}<extra></extra>'
-        )
-
         fig.update_layout(
+            title=title,
+            xaxis_title='t-SNE 1',
+            yaxis_title='t-SNE 2',
             width=1000,
             height=700,
             hovermode='closest',
-            font=dict(size=12)
+            font=dict(size=12),
+            template='plotly_white',
+            legend=dict(
+                title='Localisation - Prediction',
+                yanchor='top',
+                y=0.99,
+                xanchor='left',
+                x=1.01
+            )
         )
 
         return fig
@@ -203,6 +255,7 @@ class TSNEVisualizer:
     ) -> go.Figure:
         """
         Create interactive 3D t-SNE plot with Plotly
+        Uses different symbols for Effector/Non-effector predictions
 
         Args:
             tsne_coords: t-SNE coordinates (N, 3)
@@ -228,17 +281,21 @@ class TSNEVisualizer:
         # Merge with metadata
         df = df.merge(metadata, on='label', how='left')
 
-        # Determine category
-        if 'is_effector' in df.columns:
+        # Determine category for visualization
+        if 'prediction' in df.columns:
+            df['category'] = df['prediction']
+        elif 'is_effector' in df.columns:
             df['category'] = df['is_effector'].map({
                 True: 'Effector',
-                False: 'Non-effector'
+                False: 'Non_effector'
             })
             df['category'] = df['category'].fillna('Unknown')
-        elif 'prediction' in df.columns:
-            df['category'] = df['prediction']
         else:
             df['category'] = 'Unknown'
+
+        # Ensure localisation column exists
+        if 'localisation' not in df.columns:
+            df['localisation'] = 'Unknown'
 
         # Add highlighted status
         if highlight_proteins:
@@ -251,24 +308,64 @@ class TSNEVisualizer:
             lambda row: self._create_hover_text(row), axis=1
         )
 
-        # Color column
-        color_column = color_by if color_by in df.columns else 'category'
+        # Color palette for localisations
+        loc_colors = {
+            'Cytoplasmic': '#E74C3C',
+            'Periplasmic': '#3498DB',
+            'CytoplasmicMembrane': '#F39C12',
+            'Extracellular': '#9B59B6',
+            'OuterMembrane': '#1ABC9C',
+            'Unknown': '#95A5A6'
+        }
+
+        # Symbol mapping for predictions (3D)
+        category_symbols = {
+            'Effector': 'diamond',
+            'Non_effector': 'circle',
+            'Unknown': 'square'
+        }
 
         # Create figure
-        fig = px.scatter_3d(
-            df[~df['is_highlighted']],
-            x='x',
-            y='y',
-            z='z',
-            color=color_column,
-            hover_data={'hover_text': True, 'x': False, 'y': False, 'z': False, color_column: False},
-            title=title,
-            labels={'x': 't-SNE 1', 'y': 't-SNE 2', 'z': 't-SNE 3'},
-            opacity=0.6,
-            template='plotly_white'
-        )
+        fig = go.Figure()
 
-        # Add highlighted proteins
+        # Add traces for each combination of category and localisation
+        # Draw Unknown first (bottom layer), then Non_effector, then Effector (top)
+        draw_order = ['Unknown', 'Non_effector', 'Effector']
+
+        for category in draw_order:
+            for localisation in df['localisation'].unique():
+                # Filter data
+                mask = (df['category'] == category) & (df['localisation'] == localisation) & (~df['is_highlighted'])
+                df_subset = df[mask]
+
+                if len(df_subset) == 0:
+                    continue
+
+                # Determine opacity and size
+                opacity = 0.3 if category == 'Unknown' else 0.7
+                size = 6 if category == 'Effector' else 4
+
+                fig.add_trace(go.Scatter3d(
+                    x=df_subset['x'],
+                    y=df_subset['y'],
+                    z=df_subset['z'],
+                    mode='markers',
+                    marker=dict(
+                        size=size,
+                        color=loc_colors.get(localisation, '#95A5A6'),
+                        symbol=category_symbols.get(category, 'square'),
+                        opacity=opacity,
+                        line=dict(width=0.5, color='rgba(0,0,0,0.3)')
+                    ),
+                    customdata=df_subset[['label']].values,
+                    text=df_subset['hover_text'],
+                    hovertemplate='%{text}<extra></extra>',
+                    name=f'{localisation} - {category}',
+                    legendgroup=f'{category}',
+                    showlegend=True
+                ))
+
+        # Add highlighted proteins on top
         if highlight_proteins and df['is_highlighted'].any():
             df_highlighted = df[df['is_highlighted']]
 
@@ -278,9 +375,9 @@ class TSNEVisualizer:
                 z=df_highlighted['z'],
                 mode='markers',
                 marker=dict(
-                    size=8,
-                    color='gold',
-                    symbol='diamond',
+                    size=10,
+                    color='#FFD700',
+                    symbol='x',
                     line=dict(width=2, color='black')
                 ),
                 text=df_highlighted['hover_text'],
@@ -290,11 +387,8 @@ class TSNEVisualizer:
             ))
 
         # Update layout
-        fig.update_traces(
-            hovertemplate='%{customdata[0]}<extra></extra>'
-        )
-
         fig.update_layout(
+            title=title,
             width=1100,
             height=800,
             scene=dict(
@@ -303,7 +397,15 @@ class TSNEVisualizer:
                 zaxis_title='t-SNE 3'
             ),
             hovermode='closest',
-            font=dict(size=12)
+            font=dict(size=12),
+            template='plotly_white',
+            legend=dict(
+                title='Localisation - Prediction',
+                yanchor='top',
+                y=0.99,
+                xanchor='left',
+                x=0.01
+            )
         )
 
         return fig

@@ -14,21 +14,6 @@ function initAttributionData(data) {
     attributionData = data;
 }
 
-// Add click handlers to t-SNE plots
-function setupClickHandlers() {
-    const { tsne2DDiv, tsne3DDiv } = getTSNEDivs();
-
-    if (tsne2DDiv) {
-        console.log('Adding click handler to 2D t-SNE');
-        addClickListener(tsne2DDiv);
-    }
-
-    if (tsne3DDiv) {
-        console.log('Adding click handler to 3D t-SNE');
-        addClickListener(tsne3DDiv);
-    }
-}
-
 function addClickListener(plotDiv) {
     plotDiv.on('plotly_click', function(data) {
         if (data.points && data.points.length > 0) {
@@ -164,7 +149,7 @@ function debugPlotData(plotDiv, plotName) {
     });
 }
 
-// Search protein in 2D plot - FIXED VERSION
+// Search protein in 2D plot 
 function searchProtein2D() {
     const searchTerm = document.getElementById('search-2d').value.trim().toLowerCase();
     const resultSpan = document.getElementById('search-result-2d');
@@ -182,14 +167,10 @@ function searchProtein2D() {
         return;
     }
 
-    // DEBUG: Log structure once
-    if (!originalData2D) {
-        debugPlotData(tsne2DDiv, '2D t-SNE');
-    }
-
     // Store original data if not done yet
     if (!originalData2D) {
         originalData2D = JSON.parse(JSON.stringify(tsne2DDiv.data));
+        debugPlotData(tsne2DDiv, '2D t-SNE');
     }
 
     let found = false;
@@ -201,20 +182,14 @@ function searchProtein2D() {
     for (let traceIdx = 0; traceIdx < newData.length; traceIdx++) {
         const trace = newData[traceIdx];
 
-        // Skip if no customdata
         if (!trace.customdata || !Array.isArray(trace.customdata)) {
-            console.log(`Trace ${traceIdx}: No customdata, skipping`);
             continue;
         }
 
-        console.log(`Searching in trace ${traceIdx} (${trace.name}), ${trace.customdata.length} points`);
-
-        // Search in this trace
         for (let i = 0; i < trace.customdata.length; i++) {
             const item = trace.customdata[i];
             let proteinId = '';
 
-            // Handle different customdata structures
             if (Array.isArray(item)) {
                 proteinId = String(item[0]).toLowerCase();
             } else if (typeof item === 'object' && item !== null) {
@@ -223,13 +198,11 @@ function searchProtein2D() {
                 proteinId = String(item).toLowerCase();
             }
 
-            console.log(`  Point ${i}: ${proteinId}`);
-
             if (proteinId.includes(searchTerm)) {
                 found = true;
                 foundInTrace = traceIdx;
                 foundAtIndex = i;
-                console.log(`FOUND at trace ${traceIdx}, index ${i}: ${proteinId}`);
+                console.log(`FOUND: ${proteinId} at trace ${traceIdx}, index ${i}`);
                 break;
             }
         }
@@ -238,39 +211,59 @@ function searchProtein2D() {
     }
 
     if (found) {
-        // Highlight the found point
         const trace = newData[foundInTrace];
         const numPoints = trace.x.length;
 
-        // Initialize marker properties as arrays
+        // Ensure marker object exists
         if (!trace.marker) trace.marker = {};
 
-        const baseSize = trace.marker.size || 6;
+        // Get base properties
+        const baseSize = Array.isArray(trace.marker.size) ? trace.marker.size[0] : (trace.marker.size || 6);
         const baseColor = trace.marker.color;
 
-        // Create size array
-        trace.marker.size = new Array(numPoints).fill(typeof baseSize === 'number' ? baseSize : 6);
-
-        // Create color array - handle different color types
-        if (Array.isArray(baseColor)) {
-            trace.marker.color = [...baseColor];
-        } else if (typeof baseColor === 'string') {
-            trace.marker.color = new Array(numPoints).fill(baseColor);
-        } else {
-            trace.marker.color = new Array(numPoints).fill('#3498db');
+        // Initialize arrays with base values
+        trace.marker.size = new Array(numPoints);
+        trace.marker.color = new Array(numPoints);
+        
+        for (let i = 0; i < numPoints; i++) {
+            trace.marker.size[i] = typeof baseSize === 'number' ? baseSize : 6;
+            
+            if (Array.isArray(baseColor)) {
+                trace.marker.color[i] = baseColor[i] || '#3498db';
+            } else if (typeof baseColor === 'string') {
+                trace.marker.color[i] = baseColor;
+            } else {
+                trace.marker.color[i] = '#3498db';
+            }
         }
 
-        // Highlight the found point
-        trace.marker.size[foundAtIndex] = 20;
+        // Apply highlight to found point
+        trace.marker.size[foundAtIndex] = 25; // Augmenté de 20 à 25
         trace.marker.color[foundAtIndex] = '#FFD700'; // Gold
-
-        if (!trace.marker.line) {
-            trace.marker.line = { width: [], color: [] };
+        
+        // Add border to highlighted point
+        trace.marker.line = {
+            width: new Array(numPoints).fill(0),
+            color: new Array(numPoints).fill('rgba(0,0,0,0)')
+        };
+        trace.marker.line.width[foundAtIndex] = 3; // Augmenté de 2 à 3
+        trace.marker.line.color[foundAtIndex] = '#000000'; // Noir pur
+        
+        // Force scatter mode (not scattergl)
+        trace.type = 'scatter';
+        trace.mode = 'markers';
+        
+        // Ensure opacity is set
+        if (!trace.marker.opacity) {
+            trace.marker.opacity = 1;
         }
-        trace.marker.line.width = new Array(numPoints).fill(0);
-        trace.marker.line.color = new Array(numPoints).fill('rgba(0,0,0,0)');
-        trace.marker.line.width[foundAtIndex] = 2;
-        trace.marker.line.color[foundAtIndex] = 'black';
+
+        console.log('Highlighting point:', {
+            trace: foundInTrace,
+            index: foundAtIndex,
+            size: trace.marker.size[foundAtIndex],
+            color: trace.marker.color[foundAtIndex]
+        });
 
         Plotly.react(tsne2DDiv, newData, tsne2DDiv.layout);
         resultSpan.textContent = `Protein found in ${newData[foundInTrace].name}!`;
@@ -278,7 +271,6 @@ function searchProtein2D() {
     } else {
         resultSpan.textContent = 'Protein not found';
         resultSpan.className = 'search-result error';
-        console.log('NOT FOUND after searching all traces');
     }
 }
 
@@ -295,7 +287,7 @@ function resetHighlight2D() {
     }
 }
 
-// Search protein in 3D plot - FIXED VERSION
+// Search protein in 3D plot
 function searchProtein3D() {
     const searchTerm = document.getElementById('search-3d').value.trim().toLowerCase();
     const resultSpan = document.getElementById('search-result-3d');
@@ -313,14 +305,9 @@ function searchProtein3D() {
         return;
     }
 
-    // DEBUG: Log structure once
-    if (!originalData3D) {
-        debugPlotData(tsne3DDiv, '3D t-SNE');
-    }
-
-    // Store original data if not done yet
     if (!originalData3D) {
         originalData3D = JSON.parse(JSON.stringify(tsne3DDiv.data));
+        debugPlotData(tsne3DDiv, '3D t-SNE');
     }
 
     let found = false;
@@ -328,7 +315,6 @@ function searchProtein3D() {
     let foundAtIndex = -1;
     const newData = JSON.parse(JSON.stringify(originalData3D));
 
-    // Search through ALL traces
     for (let traceIdx = 0; traceIdx < newData.length; traceIdx++) {
         const trace = newData[traceIdx];
 
@@ -352,6 +338,7 @@ function searchProtein3D() {
                 found = true;
                 foundInTrace = traceIdx;
                 foundAtIndex = i;
+                console.log(`FOUND 3D: ${proteinId} at trace ${traceIdx}, index ${i}`);
                 break;
             }
         }
@@ -365,29 +352,48 @@ function searchProtein3D() {
 
         if (!trace.marker) trace.marker = {};
 
-        const baseSize = trace.marker.size || 6;
+        const baseSize = Array.isArray(trace.marker.size) ? trace.marker.size[0] : (trace.marker.size || 6);
         const baseColor = trace.marker.color;
 
-        trace.marker.size = new Array(numPoints).fill(typeof baseSize === 'number' ? baseSize : 6);
-
-        if (Array.isArray(baseColor)) {
-            trace.marker.color = [...baseColor];
-        } else if (typeof baseColor === 'string') {
-            trace.marker.color = new Array(numPoints).fill(baseColor);
-        } else {
-            trace.marker.color = new Array(numPoints).fill('#3498db');
+        trace.marker.size = new Array(numPoints);
+        trace.marker.color = new Array(numPoints);
+        
+        for (let i = 0; i < numPoints; i++) {
+            trace.marker.size[i] = typeof baseSize === 'number' ? baseSize : 6;
+            
+            if (Array.isArray(baseColor)) {
+                trace.marker.color[i] = baseColor[i] || '#3498db';
+            } else if (typeof baseColor === 'string') {
+                trace.marker.color[i] = baseColor;
+            } else {
+                trace.marker.color[i] = '#3498db';
+            }
         }
 
-        trace.marker.size[foundAtIndex] = 20;
+        trace.marker.size[foundAtIndex] = 25;
         trace.marker.color[foundAtIndex] = '#FFD700';
-
-        if (!trace.marker.line) {
-            trace.marker.line = { width: [], color: [] };
+        
+        trace.marker.line = {
+            width: new Array(numPoints).fill(0),
+            color: new Array(numPoints).fill('rgba(0,0,0,0)')
+        };
+        trace.marker.line.width[foundAtIndex] = 3;
+        trace.marker.line.color[foundAtIndex] = '#000000';
+        
+        // Important: garder scatter3d pour la 3D
+        trace.type = 'scatter3d';
+        trace.mode = 'markers';
+        
+        if (!trace.marker.opacity) {
+            trace.marker.opacity = 1;
         }
-        trace.marker.line.width = new Array(numPoints).fill(0);
-        trace.marker.line.color = new Array(numPoints).fill('rgba(0,0,0,0)');
-        trace.marker.line.width[foundAtIndex] = 2;
-        trace.marker.line.color[foundAtIndex] = 'black';
+
+        console.log('Highlighting 3D point:', {
+            trace: foundInTrace,
+            index: foundAtIndex,
+            size: trace.marker.size[foundAtIndex],
+            color: trace.marker.color[foundAtIndex]
+        });
 
         Plotly.react(tsne3DDiv, newData, tsne3DDiv.layout);
         resultSpan.textContent = `Protein found in ${newData[foundInTrace].name}!`;
@@ -429,7 +435,7 @@ function clearAttribution() {
     if (container) {
         container.innerHTML = `
             <p style="text-align: center; color: #999; padding: 40px;">
-                Select a protein from the dropdown or click on a point in the t-SNE plot
+                Select a protein from the dropdown above
             </p>
         `;
     }
@@ -455,7 +461,4 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') searchProtein3D();
         });
     }
-
-    // Setup click handlers after plots are rendered
-    setTimeout(setupClickHandlers, 1000);
 });

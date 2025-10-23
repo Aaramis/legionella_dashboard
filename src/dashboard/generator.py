@@ -122,7 +122,6 @@ class DashboardGenerator:
         fig_stats = create_statistics_overview(predictions_df)
 
         # Create performance evaluation visualizations
-        fig_confusion = create_confusion_matrix(predictions_df)
         fig_metrics = create_performance_metrics(predictions_df)
         fig_comparison = create_prediction_comparison(predictions_df)
 
@@ -154,7 +153,6 @@ class DashboardGenerator:
             table_html=table_html,
             attention_figs=attention_figs,
             attribution_figs=attribution_figs,
-            fig_confusion=fig_confusion,
             fig_metrics=fig_metrics,
             fig_comparison=fig_comparison
         )

@@ -20,10 +20,10 @@ analysis:
   extract_embeddings: true          # Extract embeddings from model
   extract_attentions: true          # Extract attention weights
   run_tsne: true                    # Run t-SNE dimensionality reduction
-  tsne_perplexity: 30              # t-SNE perplexity parameter
+  tsne_perplexity: 30               # t-SNE perplexity parameter
   random_seed: 45                   # Random seed for reproducibility
   compute_attributions: true        # Compute integrated gradients attributions
-  attribution_max_proteins: 4      # Maximum number of proteins for attribution analysis
+  attribution_max_proteins: 400       # Maximum number of proteins for attribution analysis
 
 # Visualization configuration
 visualization:

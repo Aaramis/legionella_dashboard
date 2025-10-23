@@ -183,9 +183,6 @@ class IntegratedGradientsAnalyzer:
         # Ligne horizontale à 0
         fig.add_hline(y=0, line_dash="dash", line_color="black", opacity=0.5)
 
-        # Largeur dynamique (cap à 5000 px)
-        dynamic_width = max(1200, min(n * 8, 5000))
-
         # Ticks intelligents pour longues séquences (≈100 ticks max)
         if n > 100:
             tick_step = max(1, n // 100)
@@ -212,7 +209,7 @@ class IntegratedGradientsAnalyzer:
         fig.update_layout(
             title=f'Integrated Gradients Attribution (Bars Only) - {protein_label} ({n} aa)',
             height=550,
-            width=dynamic_width,
+            autosize=True,
             hovermode='closest',
             dragmode='pan',
             bargap=0.05

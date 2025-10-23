@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from pathlib import Path
 from typing import Dict, List, Optional
 import json
+import base64
 
 
 def read_template_file(filename: str) -> str:
@@ -67,15 +68,13 @@ def build_localisation_cards_html(summary_stats: Dict) -> str:
 
 
 def build_performance_section_html(
-    fig_confusion: Optional[go.Figure],
     fig_metrics: Optional[go.Figure],
     fig_comparison: Optional[go.Figure]
 ) -> str:
     """Build performance evaluation section HTML"""
-    if not (fig_confusion or fig_metrics or fig_comparison):
+    if not (fig_metrics or fig_comparison):
         return ""
 
-    confusion_html = fig_confusion.to_html(full_html=False, include_plotlyjs=False) if fig_confusion else ""
     metrics_html = fig_metrics.to_html(full_html=False, include_plotlyjs=False) if fig_metrics else ""
     comparison_html = fig_comparison.to_html(full_html=False, include_plotlyjs=False) if fig_comparison else ""
 
@@ -87,10 +86,7 @@ def build_performance_section_html(
             These metrics show how well the model predicts on the labeled subset of the proteome.
         </p>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(550px, 1fr)); gap: 2rem; margin-top: 2rem;">
-            {confusion_html}
             {metrics_html}
-        </div>
-        <div style="margin-top: 2rem;">
             {comparison_html}
         </div>
     </div>
@@ -161,13 +157,10 @@ def build_attribution_section_html(attribution_figs: Optional[Dict[str, go.Figur
                 {protein_options}
             </select>
             <button onclick="clearAttribution()" class="reset-button">Clear</button>
-            <span style="color: #666; font-size: 0.9rem; margin-left: 1rem;">
-                <em>or click on a protein in the t-SNE plots above</em>
-            </span>
         </div>
         <div id="attribution-container" style="min-height: 400px; padding: 20px; background: #f9f9f9; border-radius: 8px;">
             <p style="text-align: center; color: #999; padding: 40px;">
-                Select a protein from the dropdown or click on a point in the t-SNE plot
+                Select a protein from the dropdown above
             </p>
         </div>
     </div>
@@ -184,7 +177,6 @@ def build_complete_html(
     table_html: str,
     attention_figs: List[go.Figure] = None,
     attribution_figs: Optional[Dict[str, go.Figure]] = None,
-    fig_confusion: Optional[go.Figure] = None,
     fig_metrics: Optional[go.Figure] = None,
     fig_comparison: Optional[go.Figure] = None
 ) -> str:
@@ -199,7 +191,6 @@ def build_complete_html(
         table_html: HTML string for results table
         attention_figs: List of attention figures
         attribution_figs: Dictionary of attribution figures by protein ID
-        fig_confusion: Confusion matrix figure
         fig_metrics: Performance metrics figure
         fig_comparison: Prediction comparison figure
 
@@ -218,9 +209,23 @@ def build_complete_html(
     # Build sections
     summary_cards = build_summary_cards_html(summary_stats)
     loc_cards = build_localisation_cards_html(summary_stats)
-    performance_section = build_performance_section_html(fig_confusion, fig_metrics, fig_comparison)
+    performance_section = build_performance_section_html(fig_metrics, fig_comparison)
     attention_section = build_attention_section_html(attention_figs or [])
     attribution_section, attribution_data_json = build_attribution_section_html(attribution_figs)
+
+    # Read logos
+    data_path = Path(__file__).parent.parent.parent / 'data'
+
+    # Read EIDOS SVG logo
+    eidos_logo_path = data_path / 'EIDOS_full_white.svg'
+    with open(eidos_logo_path, 'r', encoding='utf-8') as f:
+        eidos_logo = f.read()
+
+    # Read IRD PNG logo and encode to base64
+    ird_logo_path = data_path / 'log_ird_blanc.png'
+    with open(ird_logo_path, 'rb') as f:
+        ird_logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+    ird_logo_img = f'<img src="data:image/png;base64,{ird_logo_base64}" alt="IRD Logo" style="height: 80px; width: auto;">'
 
     # Build complete HTML document
     html = f"""
@@ -237,9 +242,19 @@ def build_complete_html(
 </head>
 <body>
     <div class="header">
-        <h1>Legionella Protein Analysis Report</h1>
-        <p>Deep Learning-based Effector Prediction and Visualization</p>
-        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Generated: {summary_stats['timestamp']}</p>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
+            <div style="flex-shrink: 0; height: 80px; width: auto;">
+                {eidos_logo}
+            </div>
+            <div style="flex-grow: 1; text-align: center;">
+                <h1 style="margin: 0;">Legionella Protein Analysis Report</h1>
+                <p style="margin: 0.5rem 0;">Deep Learning-based Effector Prediction and Visualization</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Generated: {summary_stats['timestamp']}</p>
+            </div>
+            <div style="flex-shrink: 0; height: 80px; width: auto;">
+                {ird_logo_img}
+            </div>
+        </div>
     </div>
 
     <div class="container">
